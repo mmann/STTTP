@@ -16,6 +16,8 @@ def main():#Create the main function
     SpaceBar=pg.transform.scale_by(SpaceBar,1)
     pg.mixer.init()
     Beep=pg.mixer.Sound("Easytotype.mp3")
+    BlueBusBump=pg.mixer.Sound("BlueBusBump.mp3")
+    BlueBusBump.set_volume(.1)
     bg.fill((127, 127, 127))#fill the background gray
     clock = pg.time.Clock()#Get a copy of the clock object (slow?)
     pg.font.init()#Set up all fonts for use (probably not needed)
@@ -59,6 +61,7 @@ def main():#Create the main function
         BlueBusYVel=BlueBusYVel+.75 #Gravitational Acceleration
         if random.random()<0.01 and BlueBusYPos==200:
             BlueBusYVel=BlueBusYVel-5
+            BlueBusBump.play()
         BlueBusYPos=BlueBusYPos+BlueBusYVel
         if BlueBusYPos>200:
             BlueBusYPos=200
