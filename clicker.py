@@ -27,7 +27,7 @@ class Bus:
     def simulate(self):#Advance the bus to its next simulated physics state
         mouse_x, mouse_y = pg.mouse.get_pos()
         if self.damage0Image.get_rect().collidepoint(mouse_x-self.XPos, mouse_y-self.YPos) and pg.mouse.get_pressed()[0] and self.gs.Clicks > 0 and not self.gs.Pressed:#Clicking on the bus increases its X Velocity
-            self.XVel = self.XVel + 1
+            self.XVel = self.XVel + 10
             self.gs.addClick(-1)
             #TO DO: Make a sound of coins going into the payment machine
         self.XPos = self.XPos + self.XVel
@@ -87,12 +87,12 @@ def main():#Create the main function
         mouse_x, mouse_y = pg.mouse.get_pos()
 
         SpaceBarXPos=bg.get_rect()[2]/2-SpaceBar.get_rect()[2]/2
-        if SpaceBar.get_rect().collidepoint(mouse_x-0, mouse_y-200) and pg.mouse.get_pressed()[0] or pg.key.get_pressed()[pg.K_SPACE]:
+        if SpaceBar.get_rect().collidepoint(mouse_x-SpaceBarXPos, mouse_y-200) and pg.mouse.get_pressed()[0] or pg.key.get_pressed()[pg.K_SPACE]:
             bg.blit(SpaceBarGoingDown,(SpaceBarXPos,200))
         else:
             bg.blit(SpaceBar,(SpaceBarXPos,200))
         
-        if SpaceBar.get_rect().collidepoint(mouse_x-0, mouse_y-200) and pg.mouse.get_pressed()[0] and not gs.Pressed:
+        if SpaceBar.get_rect().collidepoint(mouse_x-SpaceBarXPos, mouse_y-200) and pg.mouse.get_pressed()[0] and not gs.Pressed:
             gs.addClick(1)
             Beep.play()
         #Update the text
