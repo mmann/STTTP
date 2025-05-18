@@ -4,7 +4,8 @@ import random
 import math
 
 pg.init()#Start Pygame
-bg = pg.display.set_mode((500, 400))#Open a 500x400 pixel window
+screen = pg.display.set_mode((500, 400))#Open a 500x400 pixel window. Does not accept transparent objects.
+bg = pg.Surface((500, 400), pg.SRCALPHA)#Accepts transparent objects
 
 class GameState:
     def __init__(self):
@@ -14,38 +15,59 @@ class GameState:
         self.Clicks = self.Clicks + n
 
 class Bus:
-    damage0Image = pg.image.load('graphics/blue bus.png').convert_alpha()
+    busImages = [pg.image.load('graphics/blue bus %d.png'%i).convert_alpha() for i in range(5)];
     bumpSound=pg.mixer.Sound("BlueBusBump.mp3")
     bumpSound.set_volume(.1)
     def __init__(self,startingYPos,gs):
         self.startingYPos=startingYPos;
         self.YPos=startingYPos;
         self.YVel=0;
-        self.XPos=-self.damage0Image.get_rect()[2]
+        self.BusDamageIndex = 0;
+        self.XPos=-self.getImage().get_rect()[2]
         self.XVel=3;
         self.gs = gs;
+    def getImage(self):
+        return self.busImages[self.BusDamageIndex]
     def simulate(self):#Advance the bus to its next simulated physics state
-        mouse_x, mouse_y = pg.mouse.get_pos()
-        if self.damage0Image.get_rect().collidepoint(mouse_x-self.XPos, mouse_y-self.YPos) and pg.mouse.get_pressed()[0] and self.gs.Clicks > 0 and not self.gs.Pressed:#Clicking on the bus increases its X Velocity
-            self.XVel = self.XVel + 10
-            self.gs.addClick(-1)
-            #TO DO: Make a sound of coins going into the payment machine
-        self.XPos = self.XPos + self.XVel
-        if self.XPos > 550:
-            self.XPos=-self.damage0Image.get_rect()[2] # Wrap bus
-        self.YVel=self.YVel+.75 #Gravitational Acceleration
-        if random.random()<0.01*self.XVel and self.YPos==self.startingYPos:#Bus is driving on its ground level and hits a random bump
-            self.YVel=self.YVel-5
-            self.gs.addClick(1)
-            self.bumpSound.play()
-        if random.random()<0.01 and self.YPos==self.startingYPos and self.XVel > 0:#Bus breaks down
-            self.XVel = self.XVel - 1
-            #TO DO: If we break down to speed zero, play a sound of the driver saying "Not again!"
-        self.YPos=self.YPos+self.YVel
-        if self.YPos>self.startingYPos:#Bus lands back on its ground level
-            self.YPos=self.startingYPos
-            self.YVel=0
-        bg.blit(pg.transform.rotate(self.damage0Image,-self.YVel),(self.XPos,self.YPos-math.sin(abs(self.YVel)*math.pi/180)*self.damage0Image.get_rect()[2]/2))
+        if self.BusDamageIndex==4: #The driver is without a bus.
+            self.XPos = self.XPos + 1;
+            bg.blit(self.getImage(),(self.XPos,self.YPos))
+        else:
+            mouse_x, mouse_y = pg.mouse.get_pos()
+            if self.getImage().get_rect().collidepoint(mouse_x-self.XPos, mouse_y-self.YPos) and pg.mouse.get_pressed()[0] and self.gs.Clicks > 0 and not self.gs.Pressed:#Clicking on the bus increases its X Velocity
+                self.XVel = self.XVel + 4
+                self.gs.addClick(-1)
+                #TO DO: Make a sound of coins going into the payment machine
+            self.XPos = self.XPos + self.XVel
+            if self.XPos > 500:
+                self.XPos=self.XPos-500-self.getImage().get_rect()[2] # Wrap bus
+            self.YVel=self.YVel+.75 #Gravitational Acceleration
+            if random.random()<0.01*self.XVel and self.YPos==self.startingYPos:#Bus is driving on its ground level and hits a random bump
+                self.YVel=self.YVel-2*math.sqrt(self.XVel)
+                self.gs.addClick(1)
+                self.bumpSound.play()
+                if random.random()<0.1:
+                    self.BusDamageIndex = min(self.BusDamageIndex + 1,len(self.busImages)-1);
+                    self.XVel = 0;
+                    #TO DO: Draw an explosion GIF?
+            if random.random()<0.01 and self.YPos==self.startingYPos and self.XVel > 0:#Bus breaks down
+                self.XVel = self.XVel - 1
+                #TO DO: If we break down to speed zero, play a sound of the driver saying "Not again!"
+            self.YPos=self.YPos+self.YVel
+            if self.YPos>self.startingYPos:#Bus lands back on its ground level
+                self.YPos=self.startingYPos
+                self.YVel=0
+            TemporaryYPos = self.YPos-math.sin(abs(self.YVel)*math.pi/180)*self.getImage().get_rect()[2]/2;
+            bg.blit(pg.transform.rotate(self.getImage(),-self.YVel),(self.XPos,TemporaryYPos))
+            
+            NumberOfFlames = self.XVel//10
+            for FlameI in range(NumberOfFlames):
+                SmokeX = self.XPos + self.getImage().get_rect()[2]/2 - 30*NumberOfFlames*random.random()
+                SmokeY = TemporaryYPos + self.getImage().get_rect()[3] - 15*random.random()
+                SmokeRadius = NumberOfFlames*3*random.random();
+                SmokeColor = self.XVel*5;
+                SmokeBlue = max(min(255-SmokeColor,255),0);
+                pg.draw.circle(bg,(255,255,SmokeBlue,125),(SmokeX,SmokeY),SmokeRadius);
     #TO DO: User can click on the bus to speed it up
 
 def main():#Create the main function
@@ -100,6 +122,9 @@ def main():#Create the main function
         bg.blit(button_text,[0,0,200,100]);#...which we glue onto the screen at the rectangle coordinates 0,0, which is the upper left corner, because of computer graphics conventions.
         #Update the bus
         [bus.simulate() for bus in buses];
+
+        #Draw bg to screen (to fix the transparency problem)
+        screen.blit(bg,(0,0))
         
         gs.Pressed=pg.mouse.get_pressed()[0]
         pg.display.update()#Draw the display
