@@ -86,7 +86,7 @@ def main():#Create the main function
     #Initialize Pressed
     gs = GameState();
     #For testing:
-    buses = [Bus(200+30*i,gs) for i in range(8)];
+    buses = [Bus(50+30*i,gs) for i in range(8)];
 
     while True:#Main game loop (continues forever)
         clock.tick(50)#Run at 50 Frames per second
@@ -122,6 +122,8 @@ def main():#Create the main function
         bg.blit(button_text,[0,0,200,100]);#...which we glue onto the screen at the rectangle coordinates 0,0, which is the upper left corner, because of computer graphics conventions.
         #Update the bus
         [bus.simulate() for bus in buses];
+        #Upgrades
+        BusButton=pg.draw.rect(bg,(225,225,225),(10,280,128,30),0,10)
 
         #Draw bg to screen (to fix the transparency problem)
         screen.blit(bg,(0,0))
