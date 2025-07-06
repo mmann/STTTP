@@ -11,8 +11,18 @@ class GameState:
     def __init__(self):
         self.Clicks = 0
         self.Pressed = 0;
+        self.sprites = [];
     def addClick(self,n):
         self.Clicks = self.Clicks + n
+    def addSprite(self,sprite):
+        self.sprites.append(sprite)
+    def simulate(self):
+        currentIndex = 0;
+        while (currentIndex < len(self.sprites)):
+            if self.sprites[currentIndex].simulate()==1:#Simulated sprite has requested its destruction
+                self.sprites.pop(currentIndex)
+                currentIndex = currentIndex - 1
+            currentIndex = currentIndex + 1
 
 class Bus:
     busImages = [pg.image.load('graphics/blue bus %d.png'%i).convert_alpha() for i in range(5)];
@@ -32,6 +42,8 @@ class Bus:
         if self.BusDamageIndex==4: #The driver is without a bus.
             self.XPos = self.XPos + 1;
             bg.blit(self.getImage(),(self.XPos,self.YPos))
+            if (self.XPos>1000):
+                return 1 #Remove the bus object from the sprites list
         else:
             mouse_x, mouse_y = pg.mouse.get_pos()
             if self.getImage().get_rect().collidepoint(mouse_x-self.XPos, mouse_y-self.YPos) and pg.mouse.get_pressed()[0] and self.gs.Clicks > 0 and not self.gs.Pressed:#Clicking on the bus increases its X Velocity
@@ -68,7 +80,28 @@ class Bus:
                 SmokeColor = self.XVel*5;
                 SmokeBlue = max(min(255-SmokeColor,255),0);
                 pg.draw.circle(bg,(255,255,SmokeBlue,125),(SmokeX,SmokeY),SmokeRadius);
-    #TO DO: User can click on the bus to speed it up
+        return 0 #Bus simulation exits normally with a 0
+
+class UpgradeButton:
+    def __init__(self,gs,upgradePrice,upgradeChild,YPos):
+        self.gs = gs
+        self.upgradePrice = upgradePrice
+        self.upgradeChild = upgradeChild
+        self.XPos = 10
+        self.YPos = YPos
+        self.rect = pg.Rect(self.XPos,self.YPos,128,30)
+    def simulate(self):
+        #Handle button clicks
+        mouse_x, mouse_y = pg.mouse.get_pos()
+        if self.rect.collidepoint(mouse_x, mouse_y) and pg.mouse.get_pressed()[0] and self.gs.Clicks >= self.upgradePrice and not self.gs.Pressed:
+             self.gs.addClick(-self.upgradePrice)
+             self.gs.addSprite(self.upgradeChild(50+30*round(8*random.random()),self.gs))
+        #Draw the button onto the screen
+        drawColor = (225,225,225)
+        if self.gs.Clicks < self.upgradePrice:
+            drawColor = (180,180,180)
+        button=pg.draw.rect(bg,drawColor,self.rect,0,10)
+        #TO DO: Draw text describing the upgrade
 
 def main():#Create the main function
 
@@ -83,10 +116,12 @@ def main():#Create the main function
     pg.font.init()#Set up all fonts for use (probably not needed)
     font1 = pg.font.Font(None, 100)#Get a copy of the default font
 
-    #Initialize Pressed
+    #Initialize Game State
     gs = GameState();
+    #Initialize upgrade list
+    upgrades = [UpgradeButton(gs,4,Bus,280)]
     #For testing:
-    buses = [Bus(50+30*i,gs) for i in range(8)];
+    #buses = [Bus(50+30*i,gs) for i in range(8)];
 
     while True:#Main game loop (continues forever)
         clock.tick(50)#Run at 50 Frames per second
@@ -121,9 +156,10 @@ def main():#Create the main function
         button_text = font1.render("Clicks:%d"%gs.Clicks, False, (0, 0, 0))#Like printing this text onto a slip of paper...
         bg.blit(button_text,[0,0,200,100]);#...which we glue onto the screen at the rectangle coordinates 0,0, which is the upper left corner, because of computer graphics conventions.
         #Update the bus
-        [bus.simulate() for bus in buses];
+        #[bus.simulate() for bus in buses];
+        gs.simulate()
         #Upgrades
-        BusButton=pg.draw.rect(bg,(225,225,225),(10,280,128,30),0,10)
+        [upgrade.simulate() for upgrade in upgrades]
 
         #Draw bg to screen (to fix the transparency problem)
         screen.blit(bg,(0,0))
