@@ -8,6 +8,7 @@ screen = pg.display.set_mode((500, 400))#Open a 500x400 pixel window. Does not a
 bg = pg.Surface((500, 400), pg.SRCALPHA)#Accepts transparent objects
 
 class GameState:
+    gameFont = pg.font.Font(None, 30)
     def __init__(self):
         self.Clicks = 0
         self.Pressed = 0;
@@ -23,6 +24,17 @@ class GameState:
                 self.sprites.pop(currentIndex)
                 currentIndex = currentIndex - 1
             currentIndex = currentIndex + 1
+
+class Snitch:
+    def __init__(self,startingYPos,gs):
+        self.startingYPos=startingYPos;
+        self.YPos=startingYPos;
+        self.YVel=0;
+        self.BusDamageIndex = 0;
+        self.XPos=-self.getImage().get_rect()[2]
+        self.XVel=3;
+        self.gs = gs;
+        
 
 class Bus:
     busImages = [pg.image.load('graphics/blue bus %d.png'%i).convert_alpha() for i in range(5)];
@@ -83,13 +95,14 @@ class Bus:
         return 0 #Bus simulation exits normally with a 0
 
 class UpgradeButton:
-    def __init__(self,gs,upgradePrice,upgradeChild,YPos):
+    def __init__(self,gs,upgradeText,upgradePrice,upgradeChild,YPos):
         self.gs = gs
+        self.upgradeText = upgradeText
         self.upgradePrice = upgradePrice
         self.upgradeChild = upgradeChild
         self.XPos = 10
         self.YPos = YPos
-        self.rect = pg.Rect(self.XPos,self.YPos,128,30)
+        self.rect = pg.Rect(self.XPos,self.YPos,250,30)
     def simulate(self):
         #Handle button clicks
         mouse_x, mouse_y = pg.mouse.get_pos()
@@ -97,11 +110,15 @@ class UpgradeButton:
              self.gs.addClick(-self.upgradePrice)
              self.gs.addSprite(self.upgradeChild(50+30*round(8*random.random()),self.gs))
         #Draw the button onto the screen
-        drawColor = (225,225,225)
+        buttonColor = (225,225,225)
+        textColor = (30,60,50)
         if self.gs.Clicks < self.upgradePrice:
-            drawColor = (180,180,180)
-        button=pg.draw.rect(bg,drawColor,self.rect,0,10)
+            buttonColor = (180,180,180)
+            textColor = (160,160,150)
+        button=pg.draw.rect(bg,buttonColor,self.rect,0,10)
         #TO DO: Draw text describing the upgrade
+        description = GameState.gameFont.render(self.upgradeText,False,textColor)
+        bg.blit(description,[10+8,self.YPos+5,200,100]);
 
 def main():#Create the main function
 
@@ -119,7 +136,7 @@ def main():#Create the main function
     #Initialize Game State
     gs = GameState();
     #Initialize upgrade list
-    upgrades = [UpgradeButton(gs,4,Bus,280)]
+    upgrades = [UpgradeButton(gs,"Buy a bus",4,Bus,280),UpgradeButton(gs,"Harry Pooter",8,Snitch,320)]
     #For testing:
     #buses = [Bus(50+30*i,gs) for i in range(8)];
 
