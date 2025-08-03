@@ -26,14 +26,38 @@ class GameState:
             currentIndex = currentIndex + 1
 
 class Snitch:
+    snitchImages = [pg.image.load('graphics/Snitch %d.png'%i).convert_alpha() for i in range(7)];
+    snitchSound=pg.mixer.Sound("snitch2.mp3")
+    snitchSound.set_volume(.1)
     def __init__(self,startingYPos,gs):
         self.startingYPos=startingYPos;
         self.YPos=startingYPos;
-        self.YVel=0;
-        self.BusDamageIndex = 0;
-        self.XPos=-self.getImage().get_rect()[2]
-        self.XVel=3;
+        self.YVel = 0;
+        self.WingIndex = 0;
+        self.XPos = 300;
+        self.XVel = 3;
         self.gs = gs;
+        self.age = 0;
+        self.wid = self.snitchImages[0].get_rect()[2]
+        self.hgt = self.snitchImages[0].get_rect()[3]
+        self.snitchSound.play(-1)
+    def simulate(self):
+        if self.age < 10:
+            self.WingIndex = 0
+        elif self.age < 20:
+            self.WingIndex = 1
+        elif self.age < 30:
+            self.WingIndex = 2
+        elif self.age < 40:
+            self.WingIndex = 3
+        else: #Flying :)
+            self.YVel=self.YVel*.99+(random.random()-.5)*2
+            self.XVel=self.XVel*.99+(random.random()-.5)*2
+            self.YPos=(self.YVel+self.YPos)%(400+self.hgt)
+            self.XPos=(self.XVel+self.XPos)%(500+self.wid)
+            self.WingIndex=self.age%3+4
+        self.age = self.age+1
+        bg.blit(self.snitchImages[self.WingIndex],(self.XPos-self.wid,self.YPos-self.hgt))
         
 
 class Bus:
