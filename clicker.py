@@ -13,8 +13,11 @@ class GameState:
         self.Clicks = 0
         self.Pressed = 0;
         self.sprites = [];
+        self.holding = False;
     def addClick(self,n):
         self.Clicks = self.Clicks + n
+    def multiplyClick(self,n):
+        self.Clicks = round(self.Clicks*n)
     def addSprite(self,sprite):
         self.sprites.append(sprite)
     def simulate(self):
@@ -42,6 +45,15 @@ class Snitch:
         self.hgt = self.snitchImages[0].get_rect()[3]
         self.snitchSound.play(-1)
     def simulate(self):
+        mouse_x, mouse_y = pg.mouse.get_pos()
+        if self.age > 60 and pg.mouse.get_pressed()[0] and not self.gs.Pressed:#Clicked somewhere
+            hit_distance2 = (mouse_x-(self.XPos-self.wid/2))**2 + (mouse_y-(self.YPos-self.hgt/2))**2;
+            if hit_distance2 < 65:#Counts as a hit
+                self.age = 30;
+                self.gs.multiplyClick(1.1)
+                #TODO: Add a sound effect for catching the snitch
+                self.XVel = 0;
+                self.YVel = 0;
         if self.age < 10:
             self.WingIndex = 0
         elif self.age < 20:
@@ -58,6 +70,64 @@ class Snitch:
             self.WingIndex=self.age%3+4
         self.age = self.age+1
         bg.blit(self.snitchImages[self.WingIndex],(self.XPos-self.wid,self.YPos-self.hgt))
+
+class Lamumu:
+    images = [pg.image.load('graphics/lamumu %d.png'%i).convert_alpha() for i in range(7)];
+    #snitchSound=pg.mixer.Sound("snitch2.mp3")
+    #snitchSound.set_volume(.1)
+    def __init__(self,startingYPos,gs):
+        self.startingYPos=startingYPos;
+        self.YPos=startingYPos;
+        self.YVel = 0;
+        self.XPos = 300;
+        self.XVel = 0;
+        self.gs = gs;
+        self.age = 0;
+        self.wid = self.images[0].get_rect()[2]
+        self.hgt = self.images[0].get_rect()[3]
+        self.holding = False
+        self.mouseOffsets = [0,0]
+        randomRoll = random.random();
+        if randomRoll < .001:
+            self.lamumuType = 6
+        elif randomRoll < 0.003:
+            self.lamumuType = 5
+        elif randomRoll < 0.01:
+            self.lamumuType = 4
+        elif randomRoll < 0.03:
+            self.lamumuType = 3
+        elif randomRoll < 0.1:
+            self.lamumuType = 2
+        elif randomRoll < 0.3:
+            self.lamumuType = 1
+        elif randomRoll < 1:
+            self.lamumuType = 0
+        #self.snitchSound.play(-1)
+    def simulate(self):
+        mouse_x, mouse_y = pg.mouse.get_pos()
+        if not self.gs.holding and self.images[0].get_rect().collidepoint(mouse_x-self.XPos, mouse_y-self.YPos) and pg.mouse.get_pressed()[0] and not self.gs.Pressed:#Clicking on the lamumu picks it up
+            self.holding = True
+            self.gs.holding = True
+            self.mouseOffsets = [self.XPos - mouse_x,self.YPos - mouse_y]
+
+        if self.holding and not pg.mouse.get_pressed()[0]:
+            self.holding = False
+            self.gs.holding = False
+            self.XPos = self.XPos + self.mouseOffsets[0]
+            self.YPos = self.YPos + self.mouseOffsets[1]
+            self.mouseOffsets = [0,0]
+
+        if self.holding:
+            self.YVel = mouse_y - self.YPos
+            self.XVel = mouse_x - self.XPos
+            self.XPos = mouse_x
+            self.YPos = mouse_y
+        else:
+            self.XPos = self.XPos + self.XVel
+            self.YPos = self.YPos + self.YVel
+        
+        #TODO: animate the thing appearing, etc
+        bg.blit(self.images[self.lamumuType],(self.XPos + self.mouseOffsets[0],self.YPos + self.mouseOffsets[1]))
         
 
 class Bus:
@@ -133,6 +203,7 @@ class UpgradeButton:
         if self.rect.collidepoint(mouse_x, mouse_y) and pg.mouse.get_pressed()[0] and self.gs.Clicks >= self.upgradePrice and not self.gs.Pressed:
              self.gs.addClick(-self.upgradePrice)
              self.gs.addSprite(self.upgradeChild(50+30*round(8*random.random()),self.gs))
+             self.upgradePrice = self.upgradePrice*1.1
         #Draw the button onto the screen
         buttonColor = (225,225,225)
         textColor = (30,60,50)
@@ -141,7 +212,7 @@ class UpgradeButton:
             textColor = (160,160,150)
         button=pg.draw.rect(bg,buttonColor,self.rect,0,10)
         #TO DO: Draw text describing the upgrade
-        description = GameState.gameFont.render(self.upgradeText,False,textColor)
+        description = GameState.gameFont.render(self.upgradeText + ": %d"%self.upgradePrice,False,textColor)
         bg.blit(description,[10+8,self.YPos+5,200,100]);
 
 def main():#Create the main function
@@ -160,7 +231,7 @@ def main():#Create the main function
     #Initialize Game State
     gs = GameState();
     #Initialize upgrade list
-    upgrades = [UpgradeButton(gs,"Buy a bus",4,Bus,280),UpgradeButton(gs,"Harry Pooter",8,Snitch,320)]
+    upgrades = [UpgradeButton(gs,"Buy a bus",4,Bus,280),UpgradeButton(gs,"Harry Pooter",8,Snitch,320),UpgradeButton(gs,"Lamumu",1,Lamumu,360)]
     #For testing:
     #buses = [Bus(50+30*i,gs) for i in range(8)];
 
